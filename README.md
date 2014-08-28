@@ -6,13 +6,10 @@ objects.
 
 Styling is supported for following types of objects:
 
--   Standalone images
-
--   Inline images
-
--   Links
-
--   Paragraphs (with restrictions, see below)
+- Standalone images
+- Inline images
+- Links
+- Paragraphs (with restrictions, see below)
 
 Styles are read from the metadata of the document: they may reside inside the
 document or in a separate YAML file. For example
@@ -44,10 +41,10 @@ document, for example
     ![$img_style$](../images/an_image.png)
     [$link_style$ *here*](http://example.com/)
 
-Placeholders *$ALT$*, *$SRC$* and *$TITLE$* from style declarations are to be
+Placeholders `$ALT$`, `$SRC$` and `$TITLE$` from style declarations are to be
 replaced by concrete data found in the object declaration. In the last example
-`*here*` corresponds to *$ALT$* and `http://example.com/` corresponds to
-*$SRC$*.
+`*here*` corresponds to `$ALT$` and `http://example.com/` corresponds to
+`$SRC$`.
 
 As soon as paragraphs do not have place where to put extra data, style
 *para\_style* is applied to all paragraphs in the document. Currently only
