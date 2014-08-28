@@ -75,16 +75,17 @@ substStyle (Format fm) m
     case (M.lookup style m) of
         Nothing -> b
         Just (MetaMap mm) ->
-            case (M.lookup fm mm) of
-                Nothing -> b
-                Just (MetaBlocks [RawBlock f s]) ->
-                    RawBlock f (substParams fm (alt, src, title) s)
-                Just (MetaBlocks [mb]) ->
-                    walk substParams' mb
-                    where substParams' (RawInline f s) =
-                                RawInline f (substParams fm (alt, src, title) s)
-                          substParams' i = i
-                Just _ -> b
+            let params = (alt, src, title)
+            in case (M.lookup fm mm) of
+                   Nothing -> b
+                   Just (MetaBlocks [RawBlock f s]) ->
+                       RawBlock f (substParams fm params s)
+                   Just (MetaBlocks [mb]) ->
+                       walk substParams' mb
+                       where substParams' (RawInline f s) =
+                                   RawInline f (substParams fm params s)
+                             substParams' i = i
+                   Just _ -> b
         Just _ -> b
 substStyle (Format fm) m b@(Para cnt) =
     let walk' = walk (substInlineStyle (Format fm) m)
