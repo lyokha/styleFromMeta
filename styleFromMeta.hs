@@ -116,7 +116,7 @@ substInlineStyle' (Format fm) m style params i =
                 Nothing -> i
                 Just (MetaBlocks [Para ((RawInline f s):r)]) ->
                         RawInline f (substParams fm params
-                                        (s ++ (stringify' fm (map subst r))))
+                                        (s ++ stringify' fm (map subst r)))
                     where subst (Math InlineMath "ALT") = RawInline f "$ALT$"
                           subst i = i
                 Just _ -> i
@@ -131,22 +131,21 @@ substParams fm (alt, src, title) s =
 stringify' :: String -> [Inline] -> String
 stringify' fm@("latex") =
     foldr ((++) . subst) ""
-    where subst (Emph x) = "\\emph{" ++ (stringify' fm x) ++ "}"
-          subst (Strong x) = "\\textbf{" ++ (stringify' fm x) ++ "}"
-          subst (Strikeout x) = "\\sout{" ++ (stringify' fm x) ++ "}"
-          subst (Superscript x) = "\\textsuperscript{" ++ (stringify' fm x) ++
-                                  "}"
-          subst (Subscript x) = "\\textsubscript{" ++ (stringify' fm x) ++ "}"
+    where subst (Emph x) = "\\emph{" ++ stringify' fm x ++ "}"
+          subst (Strong x) = "\\textbf{" ++ stringify' fm x ++ "}"
+          subst (Strikeout x) = "\\sout{" ++ stringify' fm x ++ "}"
+          subst (Superscript x) = "\\textsuperscript{" ++ stringify' fm x ++ "}"
+          subst (Subscript x) = "\\textsubscript{" ++ stringify' fm x ++ "}"
           subst (RawInline fm x) = x
           subst (Math _ x) = "$" ++ x ++ "$"
           subst x = stringify x
 stringify' fm@("html") =
     foldr ((++) . subst) ""
-    where subst (Emph x) = "<em>" ++ (stringify' fm x) ++ "</em>"
-          subst (Strong x) = "<strong>" ++ (stringify' fm x) ++ "</strong>"
-          subst (Strikeout x) = "<del>" ++ (stringify' fm x) ++ "</del>"
-          subst (Superscript x) = "<sup>" ++ (stringify' fm x) ++ "</sup>"
-          subst (Subscript x) = "<sub>" ++ (stringify' fm x) ++ "</sub>"
+    where subst (Emph x) = "<em>" ++ stringify' fm x ++ "</em>"
+          subst (Strong x) = "<strong>" ++ stringify' fm x ++ "</strong>"
+          subst (Strikeout x) = "<del>" ++ stringify' fm x ++ "</del>"
+          subst (Superscript x) = "<sup>" ++ stringify' fm x ++ "</sup>"
+          subst (Subscript x) = "<sub>" ++ stringify' fm x ++ "</sub>"
           subst (RawInline fm x) = x
           subst x = stringify x
 stringify' _ = stringify
