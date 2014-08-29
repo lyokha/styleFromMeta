@@ -65,7 +65,7 @@ type ObjParams = ([Inline], String, String)
 -- be inserted inside them.
 --
 styleFromMeta :: Maybe Format -> Pandoc -> IO Pandoc
-styleFromMeta (Just fm) p@(Pandoc m bs) =
+styleFromMeta (Just fm) (Pandoc m bs) =
     return $ Pandoc m (walk (substStyle fm (unMeta m)) bs)
 styleFromMeta _ p = return p
 
