@@ -72,11 +72,11 @@ styleFromMeta _ p = return p
 substStyle :: Format -> MMap -> Block -> Block
 substStyle (Format fm) m
            b@(Para [Image ((Math InlineMath style):alt) (src, title)]) =
-    case (M.lookup style m) of
+    case M.lookup style m of
         Nothing -> b
         Just (MetaMap mm) ->
             let params = (alt, src, title)
-            in case (M.lookup fm mm) of
+            in case M.lookup fm mm of
                    Nothing -> b
                    Just (MetaBlocks [RawBlock f s]) ->
                        RawBlock f (substParams fm params s)
@@ -89,10 +89,10 @@ substStyle (Format fm) m
         Just _ -> b
 substStyle (Format fm) m b@(Para cnt) =
     let walk' = walk (substInlineStyle (Format fm) m)
-    in case (M.lookup "para_style" m) of
+    in case M.lookup "para_style" m of
            Nothing -> walk' b
            Just (MetaMap mm) ->
-               case (M.lookup fm mm) of
+               case M.lookup fm mm of
                    Nothing -> walk' b
                    Just (MetaBlocks [Para [Span attr _]]) ->
                        walk' (Plain [Span attr cnt])
@@ -109,10 +109,10 @@ substInlineStyle _ _ i = i
 
 substInlineStyle' :: Format -> MMap -> String -> ObjParams -> Inline -> Inline
 substInlineStyle' (Format fm) m style params i =
-    case (M.lookup style m) of
+    case M.lookup style m of
         Nothing -> i
         Just (MetaMap mm) ->
-            case (M.lookup fm mm) of
+            case M.lookup fm mm of
                 Nothing -> i
                 Just (MetaBlocks [Para ((RawInline f s):r)]) ->
                         RawInline f (substParams fm params
@@ -129,8 +129,8 @@ substParams fm (alt, src, title) s =
            ("$SRC$", src), ("$TITLE$", title)]
 
 stringify' :: String -> [Inline] -> String
-stringify' fm@("latex") is =
-    foldr ((++) . subst) "" is
+stringify' fm@("latex") =
+    foldr ((++) . subst) ""
     where subst (Emph x) = "\\emph{" ++ (stringify' fm x) ++ "}"
           subst (Strong x) = "\\textbf{" ++ (stringify' fm x) ++ "}"
           subst (Strikeout x) = "\\sout{" ++ (stringify' fm x) ++ "}"
@@ -140,8 +140,8 @@ stringify' fm@("latex") is =
           subst (RawInline fm x) = x
           subst (Math _ x) = "$" ++ x ++ "$"
           subst x = stringify x
-stringify' fm@("html") is =
-    foldr ((++) . subst) "" is
+stringify' fm@("html") =
+    foldr ((++) . subst) ""
     where subst (Emph x) = "<em>" ++ (stringify' fm x) ++ "</em>"
           subst (Strong x) = "<strong>" ++ (stringify' fm x) ++ "</strong>"
           subst (Strikeout x) = "<del>" ++ (stringify' fm x) ++ "</del>"
@@ -149,7 +149,7 @@ stringify' fm@("html") is =
           subst (Subscript x) = "<sub>" ++ (stringify' fm x) ++ "</sub>"
           subst (RawInline fm x) = x
           subst x = stringify x
-stringify' _ is = stringify is
+stringify' _ = stringify
 
 main :: IO ()
 main = toJSONFilter styleFromMeta
