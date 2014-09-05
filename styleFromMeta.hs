@@ -1,12 +1,22 @@
 -- styleFromMeta.hs
 
 {-# OPTIONS_HADDOCK prune, ignore-exports #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 780
+{-# LANGUAGE PatternSynonyms #-}
+#endif
 
 import Text.Pandoc.JSON
 import Text.Pandoc.Walk (walk)
 import Text.Pandoc.Shared (triml, stringify)
 import qualified Data.Map as M
 import Data.String.Utils (replace)
+
+#if __GLASGOW_HASKELL__ >= 780
+pattern Style x <- Math InlineMath x
+#else
+#define Style Math InlineMath
+#endif
 
 type MMap = M.Map String MetaValue
 type ObjParams = ([Inline], String, String)
@@ -70,8 +80,7 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle (Format fm) m
-           b@(Para [Image ((Math InlineMath style):alt) (src, title)]) =
+substStyle (Format fm) m b@(Para [Image ((Style style):alt) (src, title)]) =
     case M.lookup style m of
         Nothing -> b
         Just (MetaMap mm) ->
@@ -101,9 +110,9 @@ substStyle (Format fm) m b@(Para cnt) =
 substStyle fm m b = walk (substInlineStyle fm m) b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
-substInlineStyle fm m i@(Image ((Math InlineMath style):alt) (src, title)) =
+substInlineStyle fm m i@(Image ((Style style):alt) (src, title)) =
     substInlineStyle' fm m style (alt, src, title) i
-substInlineStyle fm m i@(Link ((Math InlineMath style):alt) (src, title)) =
+substInlineStyle fm m i@(Link ((Style style):alt) (src, title)) =
     substInlineStyle' fm m style (alt, src, title) i
 substInlineStyle _ _ i = i
 
@@ -115,9 +124,9 @@ substInlineStyle' (Format fm) m style params i =
             case M.lookup fm mm of
                 Nothing -> i
                 Just (MetaBlocks [Para ((RawInline f s):r)]) ->
-                        RawInline f (substParams fm params
-                                        (s ++ stringify' fm (map subst r)))
-                    where subst (Math InlineMath "ALT") = RawInline f "$ALT$"
+                    RawInline f (substParams fm params
+                                    (s ++ stringify' fm (map subst r)))
+                    where subst (Style "ALT") = RawInline f "$ALT$"
                           subst i = i
                 Just _ -> i
         Just _ -> i
