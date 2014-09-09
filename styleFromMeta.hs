@@ -88,23 +88,23 @@ substStyle (Format fm) m b@(Para [Image ((Style style):alt) (src, title)]) =
             in case M.lookup fm mm of
                    Nothing -> b
                    Just (MetaBlocks [RawBlock f s]) ->
-                       RawBlock f (substParams fm params s)
+                       RawBlock f $ substParams fm params s
                    Just (MetaBlocks [mb]) ->
                        walk substParams' mb
                        where substParams' (RawInline f s) =
-                                   RawInline f (substParams fm params s)
+                                   RawInline f $ substParams fm params s
                              substParams' i = i
                    Just _ -> b
         Just _ -> b
 substStyle (Format fm) m b@(Para cnt) =
-    let walk' = walk (substInlineStyle (Format fm) m)
+    let walk' = walk $ substInlineStyle (Format fm) m
     in case M.lookup "para_style" m of
            Nothing -> walk' b
            Just (MetaMap mm) ->
                case M.lookup fm mm of
                    Nothing -> walk' b
                    Just (MetaBlocks [Para [Span attr _]]) ->
-                       walk' (Plain [Span attr cnt])
+                       walk' $ Plain [Span attr cnt]
                    Just _ -> walk' b
            Just _ -> walk' b
 substStyle fm m b = walk (substInlineStyle fm m) b
@@ -124,8 +124,8 @@ substInlineStyle' (Format fm) m style params i =
             case M.lookup fm mm of
                 Nothing -> i
                 Just (MetaBlocks [Para ((RawInline f s):r)]) ->
-                    RawInline f (substParams fm params
-                                    (s ++ stringify' fm (map subst r)))
+                    RawInline f $ substParams fm params $
+                                    s ++ stringify' fm (map subst r)
                     where subst (Style "ALT") = RawInline f "$ALT$"
                           subst i = i
                 Just _ -> i
