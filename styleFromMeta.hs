@@ -76,7 +76,7 @@ type ObjParams = ([Inline], String, String)
 --
 styleFromMeta :: Maybe Format -> Pandoc -> IO Pandoc
 styleFromMeta (Just fm) (Pandoc m bs) =
-    return $ Pandoc m (walk (substStyle fm (unMeta m)) bs)
+    return $ Pandoc m $ walk (substStyle fm $ unMeta m) bs
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
