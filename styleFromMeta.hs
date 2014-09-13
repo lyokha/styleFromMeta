@@ -84,14 +84,11 @@ substStyle (Format fm) m b@(Para [Image ((Style style):alt) (src, title)])
     | Just (MetaMap mm) <- M.lookup style m
     , Just (MetaBlocks [mb]) <- M.lookup fm mm =
         let params = (alt, src, title)
-            substStyle' mb
-                | RawBlock f s <- mb =
-                    RawBlock f $ substParams fm params s
-                | otherwise =
-                    let substParams' (RawInline f s) =
-                                RawInline f $ substParams fm params s
-                        substParams' i = i
-                    in walk substParams' mb
+            substStyle' (RawBlock f s) = RawBlock f $ substParams fm params s
+            substStyle' b = walk substParams' b
+                where substParams' (RawInline f s) =
+                            RawInline f $ substParams fm params s
+                      substParams' i = i
         in substStyle' mb
     | otherwise = b
 substStyle (Format fm) m b@(Para cnt)
