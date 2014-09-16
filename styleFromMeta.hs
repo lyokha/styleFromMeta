@@ -1,7 +1,7 @@
 -- styleFromMeta.hs
 
 {-# OPTIONS_HADDOCK prune, ignore-exports #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, ViewPatterns #-}
 #if __GLASGOW_HASKELL__ >= 780
 {-# LANGUAGE PatternSynonyms #-}
 #endif
@@ -19,7 +19,8 @@ pattern Style x <- Math InlineMath x
 #endif
 
 type MMap = M.Map String MetaValue
-type ObjParams = ([Inline], String, String)
+type PureInlineParams = ([Inline], Target)          -- style:(alt, target)
+type InlineParams = (Inline, [Inline], Target)      -- (style:alt, target)
 
 -- | Applies style found in the metadata of the document for various objects
 --
@@ -80,10 +81,10 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle (Format fm) m b@(Para [Image ((Style style):alt) (src, title)])
+substStyle (Format fm) m b@(Para [Image ((Style style):alt) target])
     | Just (MetaMap mm) <- M.lookup style m
     , Just (MetaBlocks [mb]) <- M.lookup fm mm =
-        let params = (alt, src, title)
+        let params = (alt, target)
             substStyle' (RawBlock f s) = RawBlock f $ substParams fm params s
             substStyle' b = walk substParams' b
                 where substParams' (RawInline f s) =
@@ -100,24 +101,25 @@ substStyle (Format fm) m b@(Para cnt)
 substStyle fm m b = walk (substInlineStyle fm m) b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
-substInlineStyle fm m i@(Image ((Style style):alt) (src, title)) =
-    substInlineStyle' fm m style (alt, src, title) i
-substInlineStyle fm m i@(Link ((Style style):alt) (src, title)) =
-    substInlineStyle' fm m style (alt, src, title) i
-substInlineStyle _ _ i = i
-
-substInlineStyle' :: Format -> MMap -> String -> ObjParams -> Inline -> Inline
-substInlineStyle' (Format fm) m style params i
+substInlineStyle (Format fm) m
+                 i@(toInlineParams -> Just (Style style, alt, target))
     | Just (MetaMap mm) <- M.lookup style m
     , Just (MetaBlocks [Para ((RawInline f s):r)]) <- M.lookup fm mm =
-        let subst (Style "ALT") = RawInline f "$ALT$"
+        let params = (alt, target)
+            subst (Style "ALT") = RawInline f "$ALT$"
             subst i = i
         in RawInline f $ substParams fm params $
                                 s ++ stringify' fm (map subst r)
     | otherwise = i
+substInlineStyle _ _ i = i
 
-substParams :: String -> ObjParams -> String -> String
-substParams fm (alt, src, title) s =
+toInlineParams :: Inline -> Maybe InlineParams
+toInlineParams (Image (style@(Style _):alt) target) = Just (style, alt, target)
+toInlineParams (Link (style@(Style _):alt) target) = Just (style, alt, target)
+toInlineParams _ = Nothing
+
+substParams :: String -> PureInlineParams -> String -> String
+substParams fm (alt, (src, title)) s =
     foldr (\(a, b) -> replace a b) s
           [("$ALT$", triml . stringify' fm $ alt),
            ("$SRC$", src), ("$TITLE$", title)]
