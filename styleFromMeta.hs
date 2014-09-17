@@ -81,9 +81,9 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle (Format fm) m b@(Para [Image ((Style style):alt) target])
+substStyle fm@(Format fmt) m b@(Para [Image ((Style style):alt) target])
     | Just (MetaMap mm) <- M.lookup style m
-    , Just (MetaBlocks [mb]) <- M.lookup fm mm =
+    , Just (MetaBlocks [mb]) <- M.lookup fmt mm =
         let params = (alt, target)
             substStyle' (RawBlock f s) = RawBlock f $ substParams fm params s
             substStyle' b = walk substParams' b
@@ -92,19 +92,19 @@ substStyle (Format fm) m b@(Para [Image ((Style style):alt) target])
                       substParams' i = i
         in substStyle' mb
     | otherwise = b
-substStyle (Format fm) m b@(Para cnt)
+substStyle fm@(Format fmt) m b@(Para cnt)
     | Just (MetaMap mm) <- M.lookup "para_style" m
-    , Just (MetaBlocks [Para [Span attr _]]) <- M.lookup fm mm =
+    , Just (MetaBlocks [Para [Span attr _]]) <- M.lookup fmt mm =
         walk' $ Plain [Span attr cnt]
     | otherwise = walk' b
-    where walk' = walk $ substInlineStyle (Format fm) m
+    where walk' = walk $ substInlineStyle fm m
 substStyle fm m b = walk (substInlineStyle fm m) b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
-substInlineStyle (Format fm) m
+substInlineStyle fm@(Format fmt) m
                  i@(toInlineParams -> Just (Style style, alt, target))
     | Just (MetaMap mm) <- M.lookup style m
-    , Just (MetaBlocks [Para ((RawInline f s):r)]) <- M.lookup fm mm =
+    , Just (MetaBlocks [Para ((RawInline f s):r)]) <- M.lookup fmt mm =
         let params = (alt, target)
             subst (Style "ALT") = RawInline f "$ALT$"
             subst i = i
@@ -118,31 +118,31 @@ toInlineParams (Image (style@(Style _):alt) target) = Just (style, alt, target)
 toInlineParams (Link (style@(Style _):alt) target) = Just (style, alt, target)
 toInlineParams _ = Nothing
 
-substParams :: String -> PureInlineParams -> String -> String
+substParams :: Format -> PureInlineParams -> String -> String
 substParams fm (alt, (src, title)) s =
     foldr (\(a, b) -> replace a b) s
           [("$ALT$", triml . stringify' fm $ alt),
            ("$SRC$", src), ("$TITLE$", title)]
 
-stringify' :: String -> [Inline] -> String
-stringify' fm@("latex") =
+stringify' :: Format -> [Inline] -> String
+stringify' fm@(Format fmt@("latex")) =
     foldr ((++) . subst) ""
     where subst (Emph x) = "\\emph{" ++ stringify' fm x ++ "}"
           subst (Strong x) = "\\textbf{" ++ stringify' fm x ++ "}"
           subst (Strikeout x) = "\\sout{" ++ stringify' fm x ++ "}"
           subst (Superscript x) = "\\textsuperscript{" ++ stringify' fm x ++ "}"
           subst (Subscript x) = "\\textsubscript{" ++ stringify' fm x ++ "}"
-          subst (RawInline fm x) = x
+          subst (RawInline fmt x) = x
           subst (Math _ x) = "$" ++ x ++ "$"
           subst x = stringify x
-stringify' fm@("html") =
+stringify' fm@(Format fmt@("html")) =
     foldr ((++) . subst) ""
     where subst (Emph x) = "<em>" ++ stringify' fm x ++ "</em>"
           subst (Strong x) = "<strong>" ++ stringify' fm x ++ "</strong>"
           subst (Strikeout x) = "<del>" ++ stringify' fm x ++ "</del>"
           subst (Superscript x) = "<sup>" ++ stringify' fm x ++ "</sup>"
           subst (Subscript x) = "<sub>" ++ stringify' fm x ++ "</sub>"
-          subst (RawInline fm x) = x
+          subst (RawInline fmt x) = x
           subst x = stringify x
 stringify' _ = stringify
 
