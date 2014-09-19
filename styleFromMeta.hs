@@ -81,7 +81,7 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle fm@(Format fmt) m b@(Para [Image ((Style style):alt) target])
+substStyle fm@(Format fmt) m b@(Para [Image (Style style : alt) target])
     | Just (MetaMap mm) <- M.lookup style m
     , Just (MetaBlocks [mb]) <- M.lookup fmt mm =
         let params = (alt, target)
@@ -104,7 +104,7 @@ substInlineStyle :: Format -> MMap -> Inline -> Inline
 substInlineStyle fm@(Format fmt) m
                  i@(toInlineParams -> Just (Style style, alt, target))
     | Just (MetaMap mm) <- M.lookup style m
-    , Just (MetaBlocks [Para ((RawInline f s):r)]) <- M.lookup fmt mm =
+    , Just (MetaBlocks [Para (RawInline f s : r)]) <- M.lookup fmt mm =
         let params = (alt, target)
             subst (Style "ALT") = RawInline f "$ALT$"
             subst i = i
@@ -120,7 +120,7 @@ toInlineParams _ = Nothing
 
 substParams :: Format -> PureInlineParams -> String -> String
 substParams fm (alt, (src, title)) s =
-    foldr (\(a, b) -> replace a b) s
+    foldr (uncurry replace) s
           [("$ALT$", triml . stringify' fm $ alt),
            ("$SRC$", src), ("$TITLE$", title)]
 
