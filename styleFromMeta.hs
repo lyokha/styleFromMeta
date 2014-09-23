@@ -14,10 +14,10 @@ import Data.String.Utils (replace)
 
 #if __GLASGOW_HASKELL__ >= 708
 pattern Style x <- Math InlineMath x
-pattern Alt x <- (dropWhileSpace -> x)
+pattern Alt x <- (dropWhile (==Space) -> x)
 #else
 #define Style Math InlineMath
-#define Alt(x) (dropWhileSpace -> x)
+#define Alt(x) (dropWhile (==Space) -> x)
 #endif
 
 type MMap = M.Map String MetaValue
@@ -127,9 +127,6 @@ toInlineParams (Image (style@(Style _) : Alt (alt)) tgt) =
 toInlineParams (Link (style@(Style _) : Alt (alt)) tgt) =
     Just ((style, alt, tgt), Link)
 toInlineParams _ = Nothing
-
-dropWhileSpace :: [Inline] -> [Inline]
-dropWhileSpace = dropWhile (==Space)
 
 substParams :: Format -> PureInlineParams -> String -> String
 substParams fm (alt, (src, title)) s =
