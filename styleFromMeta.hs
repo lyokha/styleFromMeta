@@ -2,7 +2,7 @@
 
 {-# OPTIONS_HADDOCK prune, ignore-exports #-}
 {-# LANGUAGE CPP, ViewPatterns #-}
-#if __GLASGOW_HASKELL__ >= 780
+#if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms #-}
 #endif
 
@@ -12,10 +12,12 @@ import Text.Pandoc.Shared (stringify)
 import qualified Data.Map as M
 import Data.String.Utils (replace)
 
-#if __GLASGOW_HASKELL__ >= 780
+#if __GLASGOW_HASKELL__ >= 708
 pattern Style x <- Math InlineMath x
+pattern Alt x <- (dropWhileSpace -> x)
 #else
 #define Style Math InlineMath
+#define Alt(x) (dropWhileSpace -> x)
 #endif
 
 type MMap = M.Map String MetaValue
@@ -82,8 +84,7 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle fm@(Format fmt) m
-           b@(Para [Image (Style style : (dropWhileSpace -> alt)) tgt])
+substStyle fm@(Format fmt) m b@(Para [Image (Style style : Alt (alt)) tgt])
     | Just (MetaMap mm) <- M.lookup style m =
         let params = (alt, tgt)
             substStyle' (Just (MetaBlocks [RawBlock f s])) =
@@ -121,9 +122,9 @@ substInlineStyle fm@(Format fmt) m
 substInlineStyle _ _ i = i
 
 toInlineParams :: Inline -> Maybe (InlineParams, InlineCons)
-toInlineParams (Image (style@(Style _) : (dropWhileSpace -> alt)) tgt) =
+toInlineParams (Image (style@(Style _) : Alt (alt)) tgt) =
     Just ((style, alt, tgt), Image)
-toInlineParams (Link (style@(Style _) : (dropWhileSpace -> alt)) tgt) =
+toInlineParams (Link (style@(Style _) : Alt (alt)) tgt) =
     Just ((style, alt, tgt), Link)
 toInlineParams _ = Nothing
 
