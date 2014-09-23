@@ -8,7 +8,7 @@
 
 import Text.Pandoc.JSON
 import Text.Pandoc.Walk (walk)
-import Text.Pandoc.Shared (triml, stringify)
+import Text.Pandoc.Shared (stringify)
 import qualified Data.Map as M
 import Data.String.Utils (replace)
 
@@ -21,6 +21,7 @@ pattern Style x <- Math InlineMath x
 type MMap = M.Map String MetaValue
 type PureInlineParams = ([Inline], Target)          -- style:(alt, target)
 type InlineParams = (Inline, [Inline], Target)      -- (style:alt, target)
+type InlineCons = [Inline] -> Target -> Inline      -- Image or Link
 
 -- | Applies style found in the metadata of the document for various objects
 --
@@ -81,16 +82,19 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle fm@(Format fmt) m b@(Para [Image (Style style : alt) target])
-    | Just (MetaMap mm) <- M.lookup style m
-    , Just (MetaBlocks [mb]) <- M.lookup fmt mm =
-        let params = (alt, target)
-            substStyle' (RawBlock f s) = RawBlock f $ substParams fm params s
-            substStyle' b = walk substParams' b
+substStyle fm@(Format fmt) m
+           b@(Para [Image (Style style : (dropWhileSpace -> alt)) tgt])
+    | Just (MetaMap mm) <- M.lookup style m =
+        let params = (alt, tgt)
+            substStyle' (Just (MetaBlocks [RawBlock f s])) =
+                RawBlock f $ substParams fm params s
+            substStyle' (Just (MetaBlocks [b])) = walk substParams' b
                 where substParams' (RawInline f s) =
                             RawInline f $ substParams fm params s
                       substParams' i = i
-        in substStyle' mb
+            substStyle' Nothing = Para [Image alt tgt]
+            substStyle' _ = b
+        in substStyle' $ M.lookup fmt mm
     | otherwise = b
 substStyle fm@(Format fmt) m b@(Para cnt)
     | Just (MetaMap mm) <- M.lookup "para_style" m
@@ -102,27 +106,34 @@ substStyle fm m b = walk (substInlineStyle fm m) b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
 substInlineStyle fm@(Format fmt) m
-                 i@(toInlineParams -> Just (Style style, alt, target))
-    | Just (MetaMap mm) <- M.lookup style m
-    , Just (MetaBlocks [Para (RawInline f s : r)]) <- M.lookup fmt mm =
-        let params = (alt, target)
-            subst (Style "ALT") = RawInline f "$ALT$"
-            subst i = i
-        in RawInline f $ substParams fm params $
+                 i@(toInlineParams -> Just ((Style style, alt, tgt), cons))
+    | Just (MetaMap mm) <- M.lookup style m =
+        let substInlineStyle' (Just (MetaBlocks [Para (RawInline f s : r)])) =
+                RawInline f $ substParams fm params $
                                 s ++ stringify' fm (map subst r)
+                where params = (alt, tgt)
+                      subst (Style "ALT") = RawInline f "$ALT$"
+                      subst i = i
+            substInlineStyle' Nothing = cons alt tgt
+            substInlineStyle' _ = i
+        in substInlineStyle' $ M.lookup fmt mm
     | otherwise = i
 substInlineStyle _ _ i = i
 
-toInlineParams :: Inline -> Maybe InlineParams
-toInlineParams (Image (style@(Style _):alt) target) = Just (style, alt, target)
-toInlineParams (Link (style@(Style _):alt) target) = Just (style, alt, target)
+toInlineParams :: Inline -> Maybe (InlineParams, InlineCons)
+toInlineParams (Image (style@(Style _) : (dropWhileSpace -> alt)) tgt) =
+    Just ((style, alt, tgt), Image)
+toInlineParams (Link (style@(Style _) : (dropWhileSpace -> alt)) tgt) =
+    Just ((style, alt, tgt), Link)
 toInlineParams _ = Nothing
+
+dropWhileSpace :: [Inline] -> [Inline]
+dropWhileSpace = dropWhile (==Space)
 
 substParams :: Format -> PureInlineParams -> String -> String
 substParams fm (alt, (src, title)) s =
     foldr (uncurry replace) s
-          [("$ALT$", triml . stringify' fm $ alt),
-           ("$SRC$", src), ("$TITLE$", title)]
+          [("$ALT$", stringify' fm alt), ("$SRC$", src), ("$TITLE$", title)]
 
 stringify' :: Format -> [Inline] -> String
 stringify' fm@(Format fmt@("latex")) =
