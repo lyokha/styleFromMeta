@@ -97,12 +97,10 @@ substStyle fm@(Format fmt) m b@(Para [Image (Style style : Alt (alt)) tgt])
             substStyle' _ = b
         in substStyle' $ M.lookup fmt mm
     | otherwise = b
-substStyle fm@(Format fmt) m b@(Para cnt)
+substStyle fm@(Format fmt) m (Para cnt)
     | Just (MetaMap mm) <- M.lookup "para_style" m
     , Just (MetaBlocks [Para [Span attr _]]) <- M.lookup fmt mm =
-        walk' $ Plain [Span attr cnt]
-    | otherwise = walk' b
-    where walk' = walk $ substInlineStyle fm m
+        walk (substInlineStyle fm m) $ Plain [Span attr cnt]
 substStyle fm m b = walk (substInlineStyle fm m) b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
@@ -118,7 +116,6 @@ substInlineStyle fm@(Format fmt) m
             substInlineStyle' Nothing = cons alt tgt
             substInlineStyle' _ = i
         in substInlineStyle' $ M.lookup fmt mm
-    | otherwise = i
 substInlineStyle _ _ i = i
 
 toInlineParams :: Inline -> Maybe (InlineParams, InlineCons)
