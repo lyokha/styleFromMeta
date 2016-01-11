@@ -84,7 +84,7 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle fm@(Format fmt) m b@(Para [Image (Style style : Alt (alt)) tgt])
+substStyle fm@(Format fmt) m b@(Para [Image attr (Style style : Alt (alt)) tgt])
     | Just (MetaMap mm) <- M.lookup style m =
         let params = (alt, tgt)
             substStyle' (Just (MetaBlocks [RawBlock f s])) =
@@ -93,7 +93,7 @@ substStyle fm@(Format fmt) m b@(Para [Image (Style style : Alt (alt)) tgt])
                 where substParams' (RawInline f s) =
                             RawInline f $ substParams fm params s
                       substParams' i = i
-            substStyle' Nothing = Para [Image alt tgt]
+            substStyle' Nothing = Para [Image attr alt tgt]
             substStyle' _ = b
         in substStyle' $ M.lookup fmt mm
     | otherwise = b
@@ -119,10 +119,10 @@ substInlineStyle fm@(Format fmt) m
 substInlineStyle _ _ i = i
 
 toInlineParams :: Inline -> Maybe (InlineParams, InlineCons)
-toInlineParams (Image (style@(Style _) : Alt (alt)) tgt) =
-    Just ((style, alt, tgt), Image)
-toInlineParams (Link (style@(Style _) : Alt (alt)) tgt) =
-    Just ((style, alt, tgt), Link)
+toInlineParams (Image attr (style@(Style _) : Alt (alt)) tgt) =
+    Just ((style, alt, tgt), Image attr)
+toInlineParams (Link attr (style@(Style _) : Alt (alt)) tgt) =
+    Just ((style, alt, tgt), Link attr)
 toInlineParams _ = Nothing
 
 substParams :: Format -> PureInlineParams -> String -> String
