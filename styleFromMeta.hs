@@ -9,8 +9,10 @@
 import Text.Pandoc.JSON
 import Text.Pandoc.Walk (walk)
 import Text.Pandoc.Shared (stringify)
+import Text.Pandoc.XML (escapeStringForXML)
 import qualified Data.Map as M
 import Data.String.Utils (replace)
+import Text.LaTeX.Base.Syntax (protectString)
 
 #if __GLASGOW_HASKELL__ >= 708
 pattern Style x <- Math InlineMath x
@@ -126,9 +128,13 @@ toInlineParams (Link attr (style@(Style _) : Alt (alt)) tgt) =
 toInlineParams _ = Nothing
 
 substParams :: Format -> PureInlineParams -> String -> String
-substParams fm (alt, (src, title)) s =
+substParams fm (alt, (escape fm -> src, escape fm -> title)) s =
     foldr (uncurry replace) s
           [("$ALT$", stringify' fm alt), ("$SRC$", src), ("$TITLE$", title)]
+
+escape :: Format -> String -> String
+escape (Format "latex") = protectString
+escape (Format "html") = escapeStringForXML
 
 stringify' :: Format -> [Inline] -> String
 stringify' fm@(Format fmt@("latex")) =
@@ -140,6 +146,7 @@ stringify' fm@(Format fmt@("latex")) =
           subst (Subscript x) = "\\textsubscript{" ++ stringify' fm x ++ "}"
           subst (RawInline fmt x) = x
           subst (Math _ x) = "$" ++ x ++ "$"
+          subst (Str x) = escape fm x
           subst x = stringify x
 stringify' fm@(Format fmt@("html")) =
     foldr ((++) . subst) ""
@@ -149,6 +156,7 @@ stringify' fm@(Format fmt@("html")) =
           subst (Superscript x) = "<sup>" ++ stringify' fm x ++ "</sup>"
           subst (Subscript x) = "<sub>" ++ stringify' fm x ++ "</sub>"
           subst (RawInline fmt x) = x
+          subst (Str x) = escape fm x
           subst x = stringify x
 stringify' _ = stringify
 
