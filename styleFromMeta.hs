@@ -1,7 +1,7 @@
 -- styleFromMeta.hs
 
 {-# OPTIONS_HADDOCK prune, ignore-exports #-}
-{-# LANGUAGE CPP, ViewPatterns #-}
+{-# LANGUAGE CPP, ViewPatterns, PatternGuards #-}
 #if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms #-}
 #endif
@@ -135,6 +135,8 @@ substParams fm (alt, (escape fm -> src, escape fm -> title)) s =
 escape :: Format -> String -> String
 escape (Format "latex") = protectString
 escape (Format "html") = escapeStringForXML
+-- TODO: properly escape other formats
+escape _ = id
 
 stringify' :: Format -> [Inline] -> String
 stringify' fm@(Format fmt@("latex")) =
@@ -158,6 +160,7 @@ stringify' fm@(Format fmt@("html")) =
           subst (RawInline fmt x) = x
           subst (Str x) = escape fm x
           subst x = stringify x
+-- TODO: properly stringify' other formats
 stringify' _ = stringify
 
 main :: IO ()
