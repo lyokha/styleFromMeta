@@ -1,9 +1,10 @@
 name:                pandoc-stylefrommeta
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            Pandoc filter to customize links, images and paragraphs
 description:         Pandoc filter to customize links, images and paragraphs
         (with restrictions). Styles are read from the metadata of the document:
-        they may reside inside the document or in a separate YAML file.
+        they may reside inside the document or in a separate YAML file. See
+        details <http://github.com/lyokha/styleFromMeta#stylefrommeta here>.
 homepage:            http://github.com/lyokha/styleFromMeta
 license:             BSD3
 license-file:        LICENSE
