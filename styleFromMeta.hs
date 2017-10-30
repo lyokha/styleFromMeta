@@ -1,26 +1,22 @@
--- styleFromMeta.hs
-
 {-# OPTIONS_HADDOCK prune, ignore-exports #-}
-{-# LANGUAGE CPP, ViewPatterns, PatternGuards #-}
-#if __GLASGOW_HASKELL__ >= 708
-{-# LANGUAGE PatternSynonyms #-}
-#endif
+{-# LANGUAGE ViewPatterns, PatternGuards, PatternSynonyms #-}
 
-import Text.Pandoc.JSON
-import Text.Pandoc.Walk (walk)
-import Text.Pandoc.Shared (stringify)
-import Text.Pandoc.XML (escapeStringForXML)
+import           Text.Pandoc.JSON
+import           Text.Pandoc.Walk (walk)
+import           Text.Pandoc.Shared (stringify)
+import           Text.Pandoc.XML (escapeStringForXML)
 import qualified Data.Map as M
-import Data.String.Utils (replace)
-import Text.LaTeX.Base.Syntax (protectString)
+import           Data.String.Utils (replace)
+import           Text.LaTeX.Base.Syntax (protectString)
 
-#if __GLASGOW_HASKELL__ >= 708
-pattern Style x <- Math InlineMath x
-pattern Alt x <- (dropWhile (==Space) -> x)
+#if MIN_VERSION_pandoc(2,0,0)
+#define MBPLAIN Plain
 #else
-#define Style Math InlineMath
-#define Alt(x) (dropWhile (==Space) -> x)
+#define MBPLAIN Para
 #endif
+
+pattern Style x <- Math InlineMath x
+pattern Alt x <- (dropWhile (== Space) -> x)
 
 type MMap = M.Map String MetaValue
 type PureInlineParams = ([Inline], Target)          -- style:(alt, target)
@@ -86,7 +82,7 @@ styleFromMeta (Just fm) (Pandoc m bs) =
 styleFromMeta _ p = return p
 
 substStyle :: Format -> MMap -> Block -> Block
-substStyle fm@(Format fmt) m b@(Para [Image attr (Style style : Alt (alt)) tgt])
+substStyle fm@(Format fmt) m b@(Para [Image attr (Style style : Alt alt) tgt])
     | Just (MetaMap mm) <- M.lookup style m =
         let params = (alt, tgt)
             substStyle' (Just (MetaBlocks [RawBlock f s])) =
@@ -101,7 +97,7 @@ substStyle fm@(Format fmt) m b@(Para [Image attr (Style style : Alt (alt)) tgt])
     | otherwise = b
 substStyle fm@(Format fmt) m (Para cnt)
     | Just (MetaMap mm) <- M.lookup "para_style" m
-    , Just (MetaBlocks [Para [Span attr _]]) <- M.lookup fmt mm =
+    , Just (MetaBlocks [MBPLAIN [Span attr _]]) <- M.lookup fmt mm =
         walk (substInlineStyle fm m) $ Plain [Span attr cnt]
 substStyle fm m b = walk (substInlineStyle fm m) b
 
@@ -109,7 +105,8 @@ substInlineStyle :: Format -> MMap -> Inline -> Inline
 substInlineStyle fm@(Format fmt) m
                  i@(toInlineParams -> Just ((Style style, alt, tgt), cons))
     | Just (MetaMap mm) <- M.lookup style m =
-        let substInlineStyle' (Just (MetaBlocks [Para (RawInline f s : r)])) =
+        let substInlineStyle' (Just (MetaBlocks
+                                        [MBPLAIN (RawInline f s : r)])) =
                 RawInline f $ substParams fm params $
                                 s ++ stringify' fm (map subst r)
                 where params = (alt, tgt)
@@ -121,9 +118,9 @@ substInlineStyle fm@(Format fmt) m
 substInlineStyle _ _ i = i
 
 toInlineParams :: Inline -> Maybe (InlineParams, InlineCons)
-toInlineParams (Image attr (style@(Style _) : Alt (alt)) tgt) =
+toInlineParams (Image attr (style@(Style _) : Alt alt) tgt) =
     Just ((style, alt, tgt), Image attr)
-toInlineParams (Link attr (style@(Style _) : Alt (alt)) tgt) =
+toInlineParams (Link attr (style@(Style _) : Alt alt) tgt) =
     Just ((style, alt, tgt), Link attr)
 toInlineParams _ = Nothing
 

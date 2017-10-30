@@ -14,6 +14,7 @@ Styling is supported for following types of objects:
 Styles are read from the metadata of the document: they may reside inside the
 document or in a separate YAML file. For example
 
+```yaml
     ---
     img_style :
       html : |
@@ -33,13 +34,16 @@ document or in a separate YAML file. For example
       html : |
         <span style="display: block; margin-bottom: 16px;"></span>
     ...
+```
 
 declares styles *img\_style*, *link\_style* and *para\_style*. Their names
 (except for the last) are arbitrarily chosen and may be referred from the
 document, for example
 
+```markdown
     ![$img_style$](../images/an_image.png)
     [$link_style$ *here*](http://example.com/)
+```
 
 Placeholders `$ALT$`, `$SRC$` and `$TITLE$` from style declarations are to be
 replaced by concrete data found in the object declaration. In the last example
