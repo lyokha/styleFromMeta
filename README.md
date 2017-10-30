@@ -47,7 +47,7 @@ document, for example
 
 Placeholders `$ALT$`, `$SRC$` and `$TITLE$` from style declarations are to be
 replaced by concrete data found in the object declaration. In the last example
-`*here*` corresponds to `$ALT$` and `http://example.com/` corresponds to
+`*here*` corresponds to `$ALT$`, and `http://example.com/` corresponds to
 `$SRC$`.
 
 As soon as paragraphs do not have place where to put extra data, style
