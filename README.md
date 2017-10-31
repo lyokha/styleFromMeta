@@ -1,8 +1,8 @@
 styleFromMeta
 =============
 
-Pandoc filter to apply styles found in the metadata of the document for various
-objects.
+Pandoc filter to apply styles found in the metadata of the document to various
+objects in HTML and LaTeX formats.
 
 Styling is supported for following types of objects:
 

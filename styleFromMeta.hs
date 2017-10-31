@@ -1,21 +1,29 @@
-{-# OPTIONS_HADDOCK prune, ignore-exports #-}
 {-# LANGUAGE ViewPatterns, PatternGuards, PatternSynonyms #-}
 
 import           Text.Pandoc.JSON
 import           Text.Pandoc.Walk (walk)
-import           Text.Pandoc.Shared (stringify)
-import           Text.Pandoc.XML (escapeStringForXML)
+import           Text.Pandoc.Options (def)
+import           Control.Exception (displayException)
 import qualified Data.Map as M
 import           Data.String.Utils (replace)
-import           Text.LaTeX.Base.Syntax (protectString)
 
 #if MIN_VERSION_pandoc(2,0,0)
+import           Text.Pandoc.Writers (Writer (..), getWriter)
+import           Text.Pandoc.Class (runPure)
+import qualified Data.ByteString.Lazy.Char8 as C8L
+import qualified Data.Text as T
+
 #define MBPLAIN Plain
 #else
+import           Text.Pandoc (Writer (..), getWriter)
+
 #define MBPLAIN Para
 #endif
 
+pattern Style :: String -> Inline
 pattern Style x <- Math InlineMath x
+
+pattern Alt :: [Inline] -> [Inline]
 pattern Alt x <- (dropWhile (== Space) -> x)
 
 type MMap = M.Map String MetaValue
@@ -23,59 +31,6 @@ type PureInlineParams = ([Inline], Target)          -- style:(alt, target)
 type InlineParams = (Inline, [Inline], Target)      -- (style:alt, target)
 type InlineCons = [Inline] -> Target -> Inline      -- Image or Link
 
--- | Applies style found in the metadata of the document for various objects
---
--- Styling is supported for following types of objects:
---
---  * Standalone images
---
---  * Inline images
---
---  * Links
---
---  * Paragraphs (with restrictions, see below)
---
--- Styles are read from the metadata of the document: they may reside inside
--- the document or in a separate YAML file. For example
---
--- > ---
--- > img_style :
--- >   html : |
--- >     <div style="clear: both; text-align: center; margin-bottom: 16px">
--- >     <a href="$SRC$" style="margin-left: 10em;" alt="$ALT$">
--- >     <img border="0" src="$SRC$" /></a></div>
--- >   latex : |
--- >     \begin{center}
--- >     \includegraphics{$SRC$}
--- >     \end{center}
--- > link_style :
--- >   html : |
--- >     <a href="$SRC$" style="margin-left: 1em; margin-right: 1em;">$ALT$</a>
--- >   latex : |
--- >     \href{$SRC$}{\colorbox{green}{$ALT$}}
--- > para_style :
--- >   html : |
--- >     <span style="display: block; margin-bottom: 16px;"></span>
--- > ...
---
--- declares styles /img_style/, /link_style/ and /para_style/. Their names
--- (except for the last) are arbitrarily chosen and may be referred from the
--- document, for example
---
--- > ![$img_style$](../images/an_image.png)
--- > [$link_style$ *here*](http://example.com/)
---
--- Placeholders /$ALT$/, /$SRC$/ and /$TITLE$/ from style declarations are
--- to be replaced by concrete data found in the object declaration. In the
--- last example @*here*@ corresponds to /$ALT$/ and @http:\/\/example.com/@
--- corresponds to /$SRC$/.
---
--- As soon as paragraphs do not have place where to put extra data, style
--- /para_style/ is applied to all paragraphs in the document. Currently only
--- transformation to a span block is supported. Any contents found between
--- opening and closing span tags are ignored: actual paragraph contents will
--- be inserted inside them.
---
 styleFromMeta :: Maybe Format -> Pandoc -> IO Pandoc
 styleFromMeta (Just fm) (Pandoc m bs) =
     return $ Pandoc m $ walk (substStyle fm $ unMeta m) bs
@@ -108,7 +63,7 @@ substInlineStyle fm@(Format fmt) m
         let substInlineStyle' (Just (MetaBlocks
                                         [MBPLAIN (RawInline f s : r)])) =
                 RawInline f $ substParams fm params $
-                                s ++ stringify' fm (map subst r)
+                                s ++ stringifyInlines fm (map subst r)
                 where params = (alt, tgt)
                       subst (Style "ALT") = RawInline f "$ALT$"
                       subst i = i
@@ -125,40 +80,29 @@ toInlineParams (Link attr (style@(Style _) : Alt alt) tgt) =
 toInlineParams _ = Nothing
 
 substParams :: Format -> PureInlineParams -> String -> String
-substParams fm (alt, (escape fm -> src, escape fm -> title)) s =
-    foldr (uncurry replace) s
-          [("$ALT$", stringify' fm alt), ("$SRC$", src), ("$TITLE$", title)]
+substParams fm (alt, (src, title)) s =
+    foldr (\(p, is) -> replace p $ stringifyInlines fm is) s
+          [("$ALT$", alt), ("$SRC$", [Str src]), ("$TITLE$", [Str title])]
 
-escape :: Format -> String -> String
-escape (Format "latex") = protectString
-escape (Format "html") = escapeStringForXML
--- TODO: properly escape other formats
-escape _ = id
-
-stringify' :: Format -> [Inline] -> String
-stringify' fm@(Format fmt@("latex")) =
-    foldr ((++) . subst) ""
-    where subst (Emph x) = "\\emph{" ++ stringify' fm x ++ "}"
-          subst (Strong x) = "\\textbf{" ++ stringify' fm x ++ "}"
-          subst (Strikeout x) = "\\sout{" ++ stringify' fm x ++ "}"
-          subst (Superscript x) = "\\textsuperscript{" ++ stringify' fm x ++ "}"
-          subst (Subscript x) = "\\textsubscript{" ++ stringify' fm x ++ "}"
-          subst (RawInline fmt x) = x
-          subst (Math _ x) = "$" ++ x ++ "$"
-          subst (Str x) = escape fm x
-          subst x = stringify x
-stringify' fm@(Format fmt@("html")) =
-    foldr ((++) . subst) ""
-    where subst (Emph x) = "<em>" ++ stringify' fm x ++ "</em>"
-          subst (Strong x) = "<strong>" ++ stringify' fm x ++ "</strong>"
-          subst (Strikeout x) = "<del>" ++ stringify' fm x ++ "</del>"
-          subst (Superscript x) = "<sup>" ++ stringify' fm x ++ "</sup>"
-          subst (Subscript x) = "<sub>" ++ stringify' fm x ++ "</sub>"
-          subst (RawInline fmt x) = x
-          subst (Str x) = escape fm x
-          subst x = stringify x
--- TODO: properly stringify' other formats
-stringify' _ = stringify
+stringifyInlines :: Format -> [Inline] -> String
+stringifyInlines (Format fmt) p =
+    let writer = getWriter fmt
+        doc = Pandoc (Meta M.empty) [Plain p]
+    in case writer of
+        Left _ -> error $ "Unknown format " ++ fmt
+#if MIN_VERSION_pandoc(2,0,0)
+        Right (TextWriter w, _) ->
+            case runPure $ w def doc of
+                Left e -> displayException e
+                Right r -> T.unpack r
+        Right (ByteStringWriter w, _) ->
+            case runPure $ w def doc of
+                Left e -> displayException e
+                Right r -> C8L.unpack r
+#else
+        Right (PureStringWriter w, _) -> w def doc
+        _ -> error $ "Unsupported format " ++ fmt ++ ", try Pandoc 2.0!"
+#endif
 
 main :: IO ()
 main = toJSONFilter styleFromMeta
