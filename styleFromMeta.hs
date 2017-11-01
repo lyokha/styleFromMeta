@@ -3,7 +3,6 @@
 import           Text.Pandoc.JSON
 import           Text.Pandoc.Walk (walk)
 import           Text.Pandoc.Options (def)
-import           Control.Exception (displayException)
 import qualified Data.Map as M
 import           Data.String.Utils (replace)
 
@@ -12,6 +11,7 @@ import           Text.Pandoc.Writers (Writer (..), getWriter)
 import           Text.Pandoc.Class (runPure)
 import qualified Data.ByteString.Lazy.Char8 as C8L
 import qualified Data.Text as T
+import           Control.Exception (displayException)
 
 #define MBPLAIN Plain
 #else
@@ -23,6 +23,12 @@ import           Text.Pandoc (Writer (..), getWriter)
 pattern Style :: String -> Inline
 pattern Style x <- Math InlineMath x
 
+pattern Subst :: String -> Inline
+pattern Subst x <- Math InlineMath x
+
+pattern SubstVerbatim :: String -> Inline
+pattern SubstVerbatim x <- Math DisplayMath x
+
 pattern Alt :: [Inline] -> [Inline]
 pattern Alt x <- (dropWhile (== Space) -> x)
 
@@ -32,41 +38,44 @@ type InlineParams = (Inline, [Inline], Target)      -- (style:alt, target)
 type InlineCons = [Inline] -> Target -> Inline      -- Image or Link
 
 styleFromMeta :: Maybe Format -> Pandoc -> IO Pandoc
-styleFromMeta (Just fm) (Pandoc m bs) =
-    return $ Pandoc m $ walk (substStyle fm $ unMeta m) bs
+styleFromMeta (Just fm) (Pandoc m bs) = do
+    let b = unMeta m
+    return $ Pandoc m $
+        walk (substInlineStyle fm b) $  -- apply styles for links and images
+        walk (substBlockStyle fm b) bs  -- apply para_style to paragraphs
 styleFromMeta _ p = return p
 
-substStyle :: Format -> MMap -> Block -> Block
-substStyle fm@(Format fmt) m b@(Para [Image attr (Style style : Alt alt) tgt])
-    | Just (MetaMap mm) <- M.lookup style m =
-        let params = (alt, tgt)
-            substStyle' (Just (MetaBlocks [RawBlock f s])) =
-                RawBlock f $ substParams fm params s
-            substStyle' (Just (MetaBlocks [b])) = walk substParams' b
-                where substParams' (RawInline f s) =
-                            RawInline f $ substParams fm params s
-                      substParams' i = i
-            substStyle' Nothing = Para [Image attr alt tgt]
-            substStyle' _ = b
-        in substStyle' $ M.lookup fmt mm
-    | otherwise = b
-substStyle fm@(Format fmt) m (Para cnt)
+substBlockStyle :: Format -> MMap -> Block -> Block
+substBlockStyle _ _ b@(Para is@(Image {} : _))
+    | all isImage is = b    -- do not apply para_style to standalone images
+    where isImage Image {} = True
+          isImage _        = False
+substBlockStyle (Format fmt) m (Para cnt)
     | Just (MetaMap mm) <- M.lookup "para_style" m
     , Just (MetaBlocks [MBPLAIN [Span attr _]]) <- M.lookup fmt mm =
-        walk (substInlineStyle fm m) $ Plain [Span attr cnt]
-substStyle fm m b = walk (substInlineStyle fm m) b
+        Plain [Span attr cnt]
+substBlockStyle _ _ b = b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
 substInlineStyle fm@(Format fmt) m
                  i@(toInlineParams -> Just ((Style style, alt, tgt), cons))
     | Just (MetaMap mm) <- M.lookup style m =
-        let substInlineStyle' (Just (MetaBlocks
-                                        [MBPLAIN (RawInline f s : r)])) =
-                RawInline f $ substParams fm params $
-                                s ++ stringifyInlines fm (map subst r)
-                where params = (alt, tgt)
-                      subst (Style "ALT") = RawInline f "$ALT$"
-                      subst i = i
+        let params = (alt, tgt)
+            substPlainParams = Span nullAttr . map (substParams fm params)
+            substInlineStyle' (Just (MetaBlocks mbs)) =
+                RawInline fm $ renderInlines fm $ map substInlineStyle'' mbs
+                    where substInlineStyle'' mb =
+                            case mb of
+                                Plain is      -> substPlainParams is
+                                Para is       -> substPlainParams is
+                                d@Div {}      ->
+                                    RawInline fm $
+                                        substParamsInRawBlock fm params $
+                                            renderBlocks fm [d]
+                                RawBlock bfm b ->
+                                    RawInline bfm $
+                                        substParamsInRawBlock bfm params b
+                                _             -> i
             substInlineStyle' Nothing = cons alt tgt
             substInlineStyle' _ = i
         in substInlineStyle' $ M.lookup fmt mm
@@ -79,15 +88,31 @@ toInlineParams (Link attr (style@(Style _) : Alt alt) tgt) =
     Just ((style, alt, tgt), Link attr)
 toInlineParams _ = Nothing
 
-substParams :: Format -> PureInlineParams -> String -> String
-substParams fm (alt, (src, title)) s =
-    foldr (\(p, is) -> replace p $ stringifyInlines fm is) s
-          [("$ALT$", alt), ("$SRC$", [Str src]), ("$TITLE$", [Str title])]
+substParams :: Format -> PureInlineParams -> Inline -> Inline
+substParams _   (alt, _)        (Subst "ALT")           = Span nullAttr alt
+substParams _   (_, (src, _))   (Subst "SRC")           = Str src
+substParams fm  (_, (src, _))   (SubstVerbatim "SRC")   = RawInline fm src
+substParams _   (_, (_, title)) (Subst "TITLE")         = Str title
+substParams fm  (_, (_, title)) (SubstVerbatim "TITLE") = RawInline fm title
+substParams _   params          (RawInline fm s)        = RawInline fm $
+    substParamsInRawBlock fm params s
+substParams _   _               i                       = i
 
-stringifyInlines :: Format -> [Inline] -> String
-stringifyInlines (Format fmt) p =
-    let writer = getWriter fmt
-        doc = Pandoc (Meta M.empty) [Plain p]
+substParamsInRawBlock :: Format -> PureInlineParams -> String -> String
+substParamsInRawBlock fm (alt, (src, title)) s =
+    foldr (\(p, is) -> replace p $ renderInlines fm is) s
+          [("$ALT$",     alt                 )
+          ,("$SRC$",     [Str src]           )
+          ,("$TITLE$",   [Str title]         )
+          ,("$$SRC$$",   [RawInline fm src]  )
+          ,("$$TITLE$$", [RawInline fm title])
+          ]
+
+renderBlocks :: Format -> [Block] -> String
+renderBlocks fm p =
+    let fmt = toWriterFormat fm
+        writer = getWriter fmt
+        doc = Pandoc (Meta M.empty) p
     in case writer of
         Left _ -> error $ "Unknown format " ++ fmt
 #if MIN_VERSION_pandoc(2,0,0)
@@ -100,9 +125,16 @@ stringifyInlines (Format fmt) p =
                 Left e -> displayException e
                 Right r -> C8L.unpack r
 #else
-        Right (PureStringWriter w, _) -> w def doc
+        Right (PureStringWriter w) -> w def doc
         _ -> error $ "Unsupported format " ++ fmt ++ ", try Pandoc 2.0!"
 #endif
+
+renderInlines :: Format -> [Inline] -> String
+renderInlines fm p = renderBlocks fm [Plain p]
+
+toWriterFormat :: Format -> String
+toWriterFormat (Format "tex") = "latex"
+toWriterFormat (Format fmt)   = fmt
 
 main :: IO ()
 main = toJSONFilter styleFromMeta

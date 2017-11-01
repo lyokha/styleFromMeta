@@ -6,8 +6,7 @@ objects in HTML and LaTeX formats.
 
 Styling is supported for following types of objects:
 
-- Standalone images
-- Inline images
+- Standalone and inlined images
 - Links
 - Paragraphs (with restrictions, see below)
 
@@ -23,7 +22,7 @@ document or in a separate YAML file. For example
         <img border="0" src="$SRC$" /></a></div>
       latex : |
         \begin{center}
-        \includegraphics{$SRC$}
+        \includegraphics{$$SRC$$}
         \end{center}
     link_style :
       html : |
@@ -46,9 +45,11 @@ document, for example
 ```
 
 Placeholders `$ALT$`, `$SRC$` and `$TITLE$` from style declarations are to be
-replaced by concrete data found in the object declaration. In the last example
-`*here*` corresponds to `$ALT$`, and `http://example.com/` corresponds to
-`$SRC$`.
+replaced by corresponding data found in the object declaration. In the last
+example `*here*` corresponds to `$ALT$`, and `http://example.com/` corresponds
+to `$SRC$`. Placeholders `$$SRC$$` and `$$TITLE$$` are replaced verbatim. In the
+first example `$$SRC$$` is used to keep underscores unescaped as they may reside
+in image names.
 
 As soon as paragraphs do not have place where to put extra data, style
 *para\_style* is applied to all paragraphs in the document. Currently only
