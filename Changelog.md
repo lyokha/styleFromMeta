@@ -2,11 +2,9 @@
 
 - Render substitutions using Pandoc's writers.
 - Improved matching algorithms in metadata blocks.
+- Implemented plain substitution using single code blocks in metadata which is
+  useful for formats other than HTML and LaTeX.
 - Added verbatim placeholders `$$SRC$$` and `$$TITLE$$`.
-- Put explicitly in docs that only HTML and LaTeX formats are supported (other
-  formats are not guaranteed to work because Pandoc treats metadata blocks as
-  parts of document hierarchy thus expecting in them either Markdown code or
-  inlined HTML or TeX).
 
 ### 0.1.1.0
 

@@ -62,6 +62,8 @@ substInlineStyle fm@(Format fmt) m
     | Just (MetaMap mm) <- M.lookup style m =
         let params = (alt, tgt)
             substPlainParams = Span nullAttr . map (substParams fm params)
+            substInlineStyle' (Just (MetaBlocks [CodeBlock _ vb])) =
+                RawInline fm $ substParamsInRawBlock fm params vb
             substInlineStyle' (Just (MetaBlocks mbs)) =
                 RawInline fm $ renderInlines fm $ map substInlineStyle'' mbs
                     where substInlineStyle'' mb =
