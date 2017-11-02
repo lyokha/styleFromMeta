@@ -21,16 +21,24 @@ import           Text.Pandoc (Writer (..), getWriter)
 #define MBPLAIN Para
 #endif
 
+#if MIN_TOOL_VERSION_ghc(7,10,1)
 pattern Style :: String -> Inline
+#endif
 pattern Style x <- Math InlineMath x
 
+#if MIN_TOOL_VERSION_ghc(7,10,1)
 pattern Subst :: String -> Inline
+#endif
 pattern Subst x = Math InlineMath x
 
+#if MIN_TOOL_VERSION_ghc(7,10,1)
 pattern SubstVerbatim :: String -> Inline
+#endif
 pattern SubstVerbatim x <- Math DisplayMath x
 
+#if MIN_TOOL_VERSION_ghc(7,10,1)
 pattern Alt :: [Inline] -> [Inline]
+#endif
 pattern Alt x <- (dropWhile (== Space) -> x)
 
 type MMap = M.Map String MetaValue

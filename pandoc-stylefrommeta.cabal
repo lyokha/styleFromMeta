@@ -1,5 +1,5 @@
 name:                pandoc-stylefrommeta
-version:             0.2.0.0
+version:             0.2.0.2
 synopsis:            Pandoc filter to customize links, images and paragraphs
 description:         Pandoc filter to customize links, images and paragraphs
         (with restrictions). Styles are read from the metadata of the document:
