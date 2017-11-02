@@ -3,6 +3,7 @@
 import           Text.Pandoc.JSON
 import           Text.Pandoc.Walk (walk)
 import           Text.Pandoc.Options (def)
+import           Text.Pandoc.Shared (stringify)
 import qualified Data.Map as M
 import           Data.String.Utils (replace)
 
@@ -24,7 +25,7 @@ pattern Style :: String -> Inline
 pattern Style x <- Math InlineMath x
 
 pattern Subst :: String -> Inline
-pattern Subst x <- Math InlineMath x
+pattern Subst x = Math InlineMath x
 
 pattern SubstVerbatim :: String -> Inline
 pattern SubstVerbatim x <- Math DisplayMath x
@@ -92,6 +93,8 @@ toInlineParams _ = Nothing
 
 substParams :: Format -> PureInlineParams -> Inline -> Inline
 substParams _   (alt, _)        (Subst "ALT")           = Span nullAttr alt
+substParams fm  params          (SubstVerbatim "ALT")   = RawInline fm $
+    stringify $ substParams fm params $ Subst "ALT"
 substParams _   (_, (src, _))   (Subst "SRC")           = Str src
 substParams fm  (_, (src, _))   (SubstVerbatim "SRC")   = RawInline fm src
 substParams _   (_, (_, title)) (Subst "TITLE")         = Str title
@@ -103,11 +106,12 @@ substParams _   _               i                       = i
 substParamsInRawBlock :: Format -> PureInlineParams -> String -> String
 substParamsInRawBlock fm (alt, (src, title)) s =
     foldr (\(p, is) -> replace p $ renderInlines fm is) s
-          [("$ALT$",     alt                 )
-          ,("$SRC$",     [Str src]           )
-          ,("$TITLE$",   [Str title]         )
-          ,("$$SRC$$",   [RawInline fm src]  )
-          ,("$$TITLE$$", [RawInline fm title])
+          [("$ALT$",     alt                                           )
+          ,("$SRC$",     [Str src]                                     )
+          ,("$TITLE$",   [Str title]                                   )
+          ,("$$ALT$$",   [RawInline fm $ stringify $ Span nullAttr alt])
+          ,("$$SRC$$",   [RawInline fm src]                            )
+          ,("$$TITLE$$", [RawInline fm title]                          )
           ]
 
 renderBlocks :: Format -> [Block] -> String
