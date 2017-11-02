@@ -56,9 +56,9 @@ document or in a separate YAML file. For example,
     ...
 ```
 
-declares styles *img\_style*, *link\_style* and *para\_style*. Their names
-(except for the last) are arbitrarily chosen and may be referred from the
-document, for example
+declares styles `img_style`, `link_style` and `para_style`. Their names (except
+for the last) are arbitrarily chosen and may be referred from the document, for
+example
 
 ```markdown
     ![$img_style$](../images/an_image.png)
@@ -72,7 +72,7 @@ replaced by corresponding data found in the object declaration. In this example
 `$$ALT$$` all formatting gets removed. In the example `$$SRC$$` is used to keep
 underscores unescaped as they may reside in image names.
 
-Notice that all metablocks' contents, with the exception of *para\_style*, are
+Notice that all metablocks contents, with the exception of `para_style`, are
 wrapped inside code blocks. This let the contents be substituted verbatim into
 any output format. However, raw HTML and LaTeX blocks are well supported by
 Pandoc, so we could rewrite parts of the example like this:
@@ -99,9 +99,9 @@ substitutions (i.e. it does not substitute blocks verbatim) and in some cases
 substitutions may even fail!
 
 As soon as paragraphs do not have place where to put extra data, style
-*para\_style* is applied to all paragraphs in the document. Currently, only
+`para_style` is applied to all paragraphs in the document. Currently, only
 transformation to a span block is supported (which is probably useful only in
 HTML). Any contents found between opening and closing span tags are ignored:
 actual paragraph contents will be inserted inside them. Wrapping inside code
-blocks is not allowed in *para\_style* block.
+blocks is not allowed in `para_style` block.
 
