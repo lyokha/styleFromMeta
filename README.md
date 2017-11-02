@@ -72,9 +72,9 @@ replaced by corresponding data found in the object declaration. In this example
 `$$ALT$$` all formatting gets removed. In the example `$$SRC$$` is used to keep
 underscores unescaped as they may reside in image names.
 
-Notice that all metablocks contents, with the exception of `para_style`, are
-wrapped inside code blocks. This let the contents be substituted verbatim into
-any output format. However, raw HTML and LaTeX blocks are well supported by
+Notice that all metablocks contents, with the exclusion of `para_style`, are
+wrapped inside code blocks. This let the contents be substituted verbatim for
+any output format. However, raw HTML and TeX blocks are well supported by
 Pandoc, so we could rewrite parts of the example like this:
 
 ```yaml
@@ -94,14 +94,14 @@ Pandoc, so we could rewrite parts of the example like this:
     ...
 ```
 
-However this method is not recommended because Pandoc may slightly re-format
-substitutions (i.e. it does not substitute blocks verbatim) and in some cases
-substitutions may even fail!
+The filter has support for raw HTML and TeX blocks, but this support is not
+complete, and in some cases substitutions may fail. In addition, Pandoc may
+re-format substitutions. That's why this method is not recommended to use.
 
 As soon as paragraphs do not have place where to put extra data, style
 `para_style` is applied to all paragraphs in the document. Currently, only
 transformation to a span block is supported (which is probably useful only in
 HTML). Any contents found between opening and closing span tags are ignored:
-actual paragraph contents will be inserted inside them. Wrapping inside code
-blocks is not allowed in `para_style` block.
+actual paragraph contents will be inserted inside them. Notice that wrapping
+inside code blocks is not allowed in `para_style` block.
 
