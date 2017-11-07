@@ -77,16 +77,16 @@ substInlineStyle fm@(Format fmt) m
                 RawInline fm $ renderInlines fm $ map substInlineStyle'' mbs
                     where substInlineStyle'' mb =
                             case mb of
-                                Plain is      -> substPlainParams is
-                                Para is       -> substPlainParams is
-                                d@Div {}      ->
+                                Plain is       -> substPlainParams is
+                                Para is        -> substPlainParams is
+                                d@Div {}       ->
                                     RawInline fm $
                                         substParamsInRawBlock fm params $
                                             renderBlocks fm [d]
                                 RawBlock bfm b ->
                                     RawInline bfm $
                                         substParamsInRawBlock bfm params b
-                                _             -> i
+                                _              -> i
             substInlineStyle' Nothing = cons alt tgt
             substInlineStyle' _ = i
         in substInlineStyle' $ M.lookup fmt mm
@@ -100,16 +100,16 @@ toInlineParams (Link attr (style@(Style _) : Alt alt) tgt) =
 toInlineParams _ = Nothing
 
 substParams :: Format -> PureInlineParams -> Inline -> Inline
-substParams _   (alt, _)        (Subst "ALT")           = Span nullAttr alt
-substParams fm  params          (SubstVerbatim "ALT")   = RawInline fm $
+substParams _  (alt, _)        (Subst "ALT")           = Span nullAttr alt
+substParams fm params          (SubstVerbatim "ALT")   = RawInline fm $
     stringify $ substParams fm params $ Subst "ALT"
-substParams _   (_, (src, _))   (Subst "SRC")           = Str src
-substParams fm  (_, (src, _))   (SubstVerbatim "SRC")   = RawInline fm src
-substParams _   (_, (_, title)) (Subst "TITLE")         = Str title
-substParams fm  (_, (_, title)) (SubstVerbatim "TITLE") = RawInline fm title
-substParams _   params          (RawInline fm s)        = RawInline fm $
+substParams _  (_, (src, _))   (Subst "SRC")           = Str src
+substParams fm (_, (src, _))   (SubstVerbatim "SRC")   = RawInline fm src
+substParams _  (_, (_, title)) (Subst "TITLE")         = Str title
+substParams fm (_, (_, title)) (SubstVerbatim "TITLE") = RawInline fm title
+substParams _  params          (RawInline fm s)        = RawInline fm $
     substParamsInRawBlock fm params s
-substParams _   _               i                       = i
+substParams _  _               i                       = i
 
 substParamsInRawBlock :: Format -> PureInlineParams -> String -> String
 substParamsInRawBlock fm (alt, (src, title)) s =
