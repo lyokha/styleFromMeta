@@ -1,3 +1,8 @@
+### 0.2.1.0
+
+- Ensure that *para_style* is always found (different versions of Pandoc may
+  render contents of *MetaBlocks* as *Para* or *Plain*).
+
 ### 0.2.0.0
 
 - Render substitutions using Pandoc's writers.

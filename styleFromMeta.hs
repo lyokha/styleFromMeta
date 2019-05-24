@@ -13,12 +13,8 @@ import           Text.Pandoc.Class (runPure)
 import qualified Data.ByteString.Lazy.Char8 as C8L
 import qualified Data.Text as T
 import           Control.Exception (displayException)
-
-#define MBPLAIN Plain
 #else
 import           Text.Pandoc (Writer (..), getWriter)
-
-#define MBPLAIN Para
 #endif
 
 #if MIN_TOOL_VERSION_ghc(7,10,1)
@@ -59,10 +55,13 @@ substBlockStyle _ _ b@(Para is@(Image {} : _))
     | all isImage is = b    -- do not apply para_style to standalone images
     where isImage Image {} = True
           isImage _        = False
-substBlockStyle (Format fmt) m (Para cnt)
+substBlockStyle (Format fmt) m b@(Para cnt)
     | Just (MetaMap mm) <- M.lookup "para_style" m
-    , Just (MetaBlocks [MBPLAIN [Span attr _]]) <- M.lookup fmt mm =
-        Plain [Span attr cnt]
+    , Just (MetaBlocks [p]) <- M.lookup fmt mm =
+        case p of
+            Para  [Span attr _] -> Plain [Span attr cnt]
+            Plain [Span attr _] -> Plain [Span attr cnt]
+            _                   -> b
 substBlockStyle _ _ b = b
 
 substInlineStyle :: Format -> MMap -> Inline -> Inline
