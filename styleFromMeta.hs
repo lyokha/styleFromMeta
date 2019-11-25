@@ -1,15 +1,22 @@
 {-# LANGUAGE ViewPatterns, PatternGuards, PatternSynonyms #-}
 
+#if MIN_VERSION_pandoc_types(1,20,0)
+{-# LANGUAGE OverloadedStrings #-}
+#endif
+
 import           Text.Pandoc.JSON
 import           Text.Pandoc.Walk (walk)
 import           Text.Pandoc.Options (def)
 import           Text.Pandoc.Shared (stringify)
 import qualified Data.Map as M
+#if !MIN_VERSION_pandoc_types(1,20,0)
 import           Data.String.Utils (replace)
+#endif
 
 #if MIN_VERSION_pandoc(2,0,0)
 import           Text.Pandoc.Writers (Writer (..), getWriter)
-import           Text.Pandoc.Class (runPure)
+import           Text.Pandoc.Class (PandocPure, runPure)
+import           Text.Pandoc.Error (PandocError)
 import qualified Data.ByteString.Lazy.Char8 as C8L
 import qualified Data.Text as T
 import           Control.Exception (displayException)
@@ -17,18 +24,48 @@ import           Control.Exception (displayException)
 import           Text.Pandoc (Writer (..), getWriter)
 #endif
 
+#if MIN_VERSION_pandoc_types(1,20,0)
+type STRING = T.Text
+rEPLACE :: STRING -> STRING -> STRING -> STRING
+rEPLACE = T.replace
+tOSTRING :: T.Text -> String
+tOSTRING = T.unpack
+fROMSTRING :: String -> T.Text
+fROMSTRING = T.pack
+tOTEXT :: T.Text -> T.Text
+tOTEXT = id
+#else
+type STRING = String
+rEPLACE :: STRING -> STRING -> STRING -> STRING
+rEPLACE = replace
+tOSTRING :: String -> String
+tOSTRING = id
+fROMSTRING :: String -> String
+fROMSTRING = id
+tOTEXT :: T.Text -> String
+tOTEXT = T.unpack
+#endif
+
+#if MIN_VERSION_pandoc(2,8,0)
+rUNWRITER :: PandocPure a -> Either PandocError a
+rUNWRITER = runPure
+#else
+rUNWRITER :: (a -> b) -> a -> b
+rUNWRITER = (id .)
+#endif
+
 #if MIN_TOOL_VERSION_ghc(7,10,1)
-pattern Style :: String -> Inline
+pattern Style :: STRING -> Inline
 #endif
 pattern Style x <- Math InlineMath x
 
 #if MIN_TOOL_VERSION_ghc(7,10,1)
-pattern Subst :: String -> Inline
+pattern Subst :: STRING -> Inline
 #endif
 pattern Subst x = Math InlineMath x
 
 #if MIN_TOOL_VERSION_ghc(7,10,1)
-pattern SubstVerbatim :: String -> Inline
+pattern SubstVerbatim :: STRING -> Inline
 #endif
 pattern SubstVerbatim x <- Math DisplayMath x
 
@@ -37,7 +74,7 @@ pattern Alt :: [Inline] -> [Inline]
 #endif
 pattern Alt x <- (dropWhile (== Space) -> x)
 
-type MMap = M.Map String MetaValue
+type MMap = M.Map STRING MetaValue
 type PureInlineParams = ([Inline], Target)          -- style:(alt, target)
 type InlineParams = (Inline, [Inline], Target)      -- (style:alt, target)
 type InlineCons = [Inline] -> Target -> Inline      -- Image or Link
@@ -110,9 +147,9 @@ substParams _  params          (RawInline fm s)        = RawInline fm $
     substParamsInRawBlock fm params s
 substParams _  _               i                       = i
 
-substParamsInRawBlock :: Format -> PureInlineParams -> String -> String
+substParamsInRawBlock :: Format -> PureInlineParams -> STRING -> STRING
 substParamsInRawBlock fm (alt, (src, title)) s =
-    foldr (\(p, is) -> replace p $ renderInlines fm is) s
+    foldr (\(p, is) -> rEPLACE p $ renderInlines fm is) s
           [("$ALT$",     alt                                           )
           ,("$SRC$",     [Str src]                                     )
           ,("$TITLE$",   [Str title]                                   )
@@ -121,31 +158,32 @@ substParamsInRawBlock fm (alt, (src, title)) s =
           ,("$$TITLE$$", [RawInline fm title]                          )
           ]
 
-renderBlocks :: Format -> [Block] -> String
+renderBlocks :: Format -> [Block] -> STRING
 renderBlocks fm p =
     let fmt = toWriterFormat fm
         writer = getWriter fmt
         doc = Pandoc (Meta M.empty) p
-    in case writer of
-        Left _ -> error $ "Unknown format " ++ fmt
+    in case rUNWRITER writer of
+           Left _ -> error $ "Unknown format " ++ tOSTRING fmt
 #if MIN_VERSION_pandoc(2,0,0)
-        Right (TextWriter w, _) ->
-            case runPure $ w def doc of
-                Left e -> displayException e
-                Right r -> T.unpack r
-        Right (ByteStringWriter w, _) ->
-            case runPure $ w def doc of
-                Left e -> displayException e
-                Right r -> C8L.unpack r
+           Right (TextWriter w, _) ->
+               case runPure $ w def doc of
+                   Left e -> fROMSTRING $ displayException e
+                   Right r -> tOTEXT r
+           Right (ByteStringWriter w, _) ->
+               case runPure $ w def doc of
+                   Left e -> fROMSTRING $ displayException e
+                   Right r -> fROMSTRING $ C8L.unpack r
 #else
-        Right (PureStringWriter w) -> w def doc
-        _ -> error $ "Unsupported format " ++ fmt ++ ", try Pandoc 2.0!"
+           Right (PureStringWriter w) -> w def doc
+           _ -> error $ "Unsupported format " ++ tOSTRING fmt ++
+               ", use Pandoc 2.0 or newer!"
 #endif
 
-renderInlines :: Format -> [Inline] -> String
+renderInlines :: Format -> [Inline] -> STRING
 renderInlines fm p = renderBlocks fm [Plain p]
 
-toWriterFormat :: Format -> String
+toWriterFormat :: Format -> STRING
 toWriterFormat (Format "tex") = "latex"
 toWriterFormat (Format fmt)   = fmt
 

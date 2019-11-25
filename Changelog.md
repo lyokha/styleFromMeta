@@ -1,3 +1,7 @@
+### 0.2.2.0
+
+- Updated after Pandoc *2.8* and the *String-to-Text* migration.
+
 ### 0.2.1.0
 
 - Ensure that *para_style* is always found (different versions of Pandoc may
