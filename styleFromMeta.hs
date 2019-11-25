@@ -15,13 +15,17 @@ import           Data.String.Utils (replace)
 
 #if MIN_VERSION_pandoc(2,0,0)
 import           Text.Pandoc.Writers (Writer (..), getWriter)
-import           Text.Pandoc.Class (PandocPure, runPure)
-import           Text.Pandoc.Error (PandocError)
+import           Text.Pandoc.Class (runPure)
 import qualified Data.ByteString.Lazy.Char8 as C8L
 import qualified Data.Text as T
 import           Control.Exception (displayException)
 #else
 import           Text.Pandoc (Writer (..), getWriter)
+#endif
+
+#if MIN_VERSION_pandoc(2,8,0)
+import           Text.Pandoc.Class (PandocPure)
+import           Text.Pandoc.Error (PandocError)
 #endif
 
 #if MIN_VERSION_pandoc_types(1,20,0)
@@ -47,11 +51,11 @@ tOTEXT = T.unpack
 #endif
 
 #if MIN_VERSION_pandoc(2,8,0)
-rUNWRITER :: PandocPure a -> Either PandocError a
-rUNWRITER = runPure
+rUNGETWRITER :: PandocPure a -> Either PandocError a
+rUNGETWRITER = runPure
 #else
-rUNWRITER :: (a -> b) -> a -> b
-rUNWRITER = (id .)
+rUNGETWRITER :: a -> a
+rUNGETWRITER = id
 #endif
 
 #if MIN_TOOL_VERSION_ghc(7,10,1)
@@ -163,7 +167,7 @@ renderBlocks fm p =
     let fmt = toWriterFormat fm
         writer = getWriter fmt
         doc = Pandoc (Meta M.empty) p
-    in case rUNWRITER writer of
+    in case rUNGETWRITER writer of
         Left _ -> error $ "Unknown format " ++ tOSTRING fmt
 #if MIN_VERSION_pandoc(2,0,0)
         Right (TextWriter w, _) ->
