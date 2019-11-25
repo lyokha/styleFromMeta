@@ -164,20 +164,20 @@ renderBlocks fm p =
         writer = getWriter fmt
         doc = Pandoc (Meta M.empty) p
     in case rUNWRITER writer of
-           Left _ -> error $ "Unknown format " ++ tOSTRING fmt
+        Left _ -> error $ "Unknown format " ++ tOSTRING fmt
 #if MIN_VERSION_pandoc(2,0,0)
-           Right (TextWriter w, _) ->
-               case runPure $ w def doc of
-                   Left e -> fROMSTRING $ displayException e
-                   Right r -> tOTEXT r
-           Right (ByteStringWriter w, _) ->
-               case runPure $ w def doc of
-                   Left e -> fROMSTRING $ displayException e
-                   Right r -> fROMSTRING $ C8L.unpack r
+        Right (TextWriter w, _) ->
+            case runPure $ w def doc of
+                Left e -> fROMSTRING $ displayException e
+                Right r -> tOTEXT r
+        Right (ByteStringWriter w, _) ->
+            case runPure $ w def doc of
+                Left e -> fROMSTRING $ displayException e
+                Right r -> fROMSTRING $ C8L.unpack r
 #else
-           Right (PureStringWriter w) -> w def doc
-           _ -> error $ "Unsupported format " ++ tOSTRING fmt ++
-               ", use Pandoc 2.0 or newer!"
+        Right (PureStringWriter w) -> w def doc
+        _ -> error $ "Unsupported format " ++ tOSTRING fmt ++
+            ", use Pandoc 2.0 or newer!"
 #endif
 
 renderInlines :: Format -> [Inline] -> STRING
