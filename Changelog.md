@@ -1,3 +1,7 @@
+### 0.2.3.0
+
+- Migrated from *MissingH* to *extra* for GHC *8.8.1* support.
+
 ### 0.2.2.0
 
 - Updated after Pandoc *2.8* and the *String-to-Text* migration.
@@ -19,5 +23,5 @@
 ### 0.1.1.0
 
 - Added support for Pandoc 2.0.
-- Dropped support for GHC older than 7.8 (pattern synonyms are required).
+- Dropped support for GHC older than *7.8* (pattern synonyms are required).
 

@@ -10,7 +10,7 @@ import           Text.Pandoc.Options (def)
 import           Text.Pandoc.Shared (stringify)
 import qualified Data.Map as M
 #if !MIN_VERSION_pandoc_types(1,20,0)
-import           Data.String.Utils (replace)
+import           Data.List.Extra (replace)
 #endif
 
 #if MIN_VERSION_pandoc(2,0,0)

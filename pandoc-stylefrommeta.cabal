@@ -1,5 +1,5 @@
 name:                    pandoc-stylefrommeta
-version:                 0.2.2.0
+version:                 0.2.3.0
 synopsis:                Pandoc filter to customize links, images and paragraphs
 description:             Pandoc filter to customize links, images and paragraphs
         (with restrictions). Styles are read from the metadata of the document:
@@ -26,7 +26,7 @@ executable styleFromMeta
                        , pandoc >= 1.12
                        , pandoc-types >= 1.12
                        , containers >= 0.2
-                       , MissingH >= 1.0.0
+                       , extra
                        , text
                        , bytestring
   default-extensions:    CPP
