@@ -108,7 +108,7 @@ actual paragraph contents will be inserted inside them. Notice that wrapping
 inside code blocks is not allowed in `para_style` block.
 
 <br><hr><a name="fn1"><sup>**1**</sup></a>&nbsp; All YAML and markdown code
-examples in this document have 4-spaces indentation as the document requires
-this for correct rendering. As such, when they are copied and pasted to play
+examples in this document have 4-space indentation as the document requires this
+for correct rendering. As such, when they are copied and pasted for playing
 around, the indentation must be removed!
 
