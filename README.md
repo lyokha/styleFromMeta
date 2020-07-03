@@ -13,7 +13,7 @@ Styling is supported for following types of objects:
 - Paragraphs (with restrictions, see below)
 
 Styles are read from the metadata of the document: they may reside inside the
-document or in a separate YAML file. For example,
+document or in a separate YAML file. For example<sup>[1](#fn1)</sup>,
 
 ```yaml
     ---
@@ -106,4 +106,9 @@ transformation to a span block is supported (which is probably useful only in
 HTML). Any contents found between opening and closing span tags are ignored:
 actual paragraph contents will be inserted inside them. Notice that wrapping
 inside code blocks is not allowed in `para_style` block.
+
+<br><hr><a name="fn1"><sup>**1**</sup></a>&nbsp; All YAML and markdown code
+examples in this document have 4-spaces indentation as the document requires
+this for correct rendering. As such, when they are copied and pasted to play
+around, the indentation must be removed!
 
