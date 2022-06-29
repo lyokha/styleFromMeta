@@ -1,7 +1,7 @@
 styleFromMeta
 =============
 
-[![Hackage](https://img.shields.io/hackage/v/pandoc-stylefrommeta)](https://hackage.haskell.org/package/pandoc-stylefrommeta)
+[![Hackage](https://img.shields.io/hackage/v/pandoc-stylefrommeta.svg?label=hackage%20%7C%20pandoc-stylefrommeta&logo=haskell&logoColor=%239580D1)](https://hackage.haskell.org/package/pandoc-stylefrommeta)
 
 Pandoc filter to apply styles found in the metadata of the document to various
 objects.
