@@ -1,3 +1,7 @@
+### 0.2.4.0
+
+- More granular Cabal build plan which lets skipping unneeded dependencies.
+
 ### 0.2.3.0
 
 - Migrated from *MissingH* to *extra* for GHC *8.8.1* support.
