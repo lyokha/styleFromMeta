@@ -47,6 +47,5 @@ executable styleFromMeta
   else
     build-depends:       extra
 
-  default-extensions:    CPP
   main-is:               styleFromMeta.hs
 

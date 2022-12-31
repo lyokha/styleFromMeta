@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, PatternGuards, PatternSynonyms #-}
+{-# LANGUAGE CPP, ViewPatterns, PatternGuards, PatternSynonyms #-}
 
 #if MIN_VERSION_pandoc_types(1,20,0)
 {-# LANGUAGE OverloadedStrings #-}
