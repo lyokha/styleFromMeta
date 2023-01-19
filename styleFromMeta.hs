@@ -28,6 +28,10 @@ import           Text.Pandoc.Class (PandocPure)
 import           Text.Pandoc.Error (PandocError)
 #endif
 
+#if MIN_VERSION_pandoc(3,0,0)
+import           Text.Pandoc.Format (FlavoredFormat (..))
+#endif
+
 #if MIN_VERSION_pandoc_types(1,20,0)
 type STRING = T.Text
 rEPLACE :: STRING -> STRING -> STRING -> STRING
@@ -56,6 +60,14 @@ rUNGETWRITER = runPure
 #else
 rUNGETWRITER :: a -> a
 rUNGETWRITER = id
+#endif
+
+#if MIN_VERSION_pandoc(3,0,0)
+tOFORMATNAME :: FlavoredFormat -> STRING
+tOFORMATNAME = formatName
+#else
+tOFORMATNAME :: STRING -> STRING
+tOFORMATNAME = id
 #endif
 
 #if MIN_TOOL_VERSION_ghc(7,10,1)
@@ -168,7 +180,7 @@ renderBlocks fm p =
         writer = getWriter fmt
         doc = Pandoc (Meta M.empty) p
     in case rUNGETWRITER writer of
-        Left _ -> error $ "Unknown format " ++ tOSTRING fmt
+        Left _ -> error $ "Unknown format " ++ tOSTRING (tOFORMATNAME fmt)
 #if MIN_VERSION_pandoc(2,0,0)
         Right (TextWriter w, _) ->
             case runPure $ w def doc of
@@ -187,9 +199,15 @@ renderBlocks fm p =
 renderInlines :: Format -> [Inline] -> STRING
 renderInlines fm p = renderBlocks fm [Plain p]
 
+#if MIN_VERSION_pandoc(3,0,0)
+toWriterFormat :: Format -> FlavoredFormat
+toWriterFormat (Format "tex") = FlavoredFormat "latex" mempty
+toWriterFormat (Format fmt)   = FlavoredFormat fmt mempty
+#else
 toWriterFormat :: Format -> STRING
 toWriterFormat (Format "tex") = "latex"
 toWriterFormat (Format fmt)   = fmt
+#endif
 
 main :: IO ()
 main = toJSONFilter styleFromMeta

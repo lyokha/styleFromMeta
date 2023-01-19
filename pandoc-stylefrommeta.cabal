@@ -1,5 +1,5 @@
 name:                    pandoc-stylefrommeta
-version:                 0.2.4.0
+version:                 0.3.0.0
 synopsis:                Pandoc filter to customize links, images and paragraphs
 description:             Pandoc filter to customize links, images and paragraphs
         (with restrictions). Styles are read from the metadata of the document:
@@ -11,7 +11,7 @@ extra-source-files:      Changelog.md README.md
 author:                  Alexey Radkov <alexey.radkov@gmail.com>
 maintainer:              Alexey Radkov <alexey.radkov@gmail.com>
 stability:               stable
-copyright:               2016-2022 Alexey Radkov
+copyright:               2016-2023 Alexey Radkov
 category:                Text
 build-type:              Simple
 cabal-version:           1.20

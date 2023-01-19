@@ -1,3 +1,7 @@
+### 0.3.0.0
+
+- Compatibility with Pandoc *3.0*.
+
 ### 0.2.4.0
 
 - More granular Cabal build plan which lets skipping unneeded dependencies.
