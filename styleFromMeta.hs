@@ -63,9 +63,15 @@ rUNGETWRITER = id
 #endif
 
 #if MIN_VERSION_pandoc(3,0,0)
+tOWRITERFORMAT :: Format -> FlavoredFormat
+tOWRITERFORMAT (Format "tex") = FlavoredFormat "latex" mempty
+tOWRITERFORMAT (Format fmt)   = FlavoredFormat fmt mempty
 tOFORMATNAME :: FlavoredFormat -> STRING
 tOFORMATNAME = formatName
 #else
+tOWRITERFORMAT :: Format -> STRING
+tOWRITERFORMAT (Format "tex") = "latex"
+tOWRITERFORMAT (Format fmt)   = fmt
 tOFORMATNAME :: STRING -> STRING
 tOFORMATNAME = id
 #endif
@@ -176,7 +182,7 @@ substParamsInRawBlock fm (alt, (src, title)) s =
 
 renderBlocks :: Format -> [Block] -> STRING
 renderBlocks fm p =
-    let fmt = toWriterFormat fm
+    let fmt = tOWRITERFORMAT fm
         writer = getWriter fmt
         doc = Pandoc (Meta M.empty) p
     in case rUNGETWRITER writer of
@@ -198,16 +204,6 @@ renderBlocks fm p =
 
 renderInlines :: Format -> [Inline] -> STRING
 renderInlines fm p = renderBlocks fm [Plain p]
-
-#if MIN_VERSION_pandoc(3,0,0)
-toWriterFormat :: Format -> FlavoredFormat
-toWriterFormat (Format "tex") = FlavoredFormat "latex" mempty
-toWriterFormat (Format fmt)   = FlavoredFormat fmt mempty
-#else
-toWriterFormat :: Format -> STRING
-toWriterFormat (Format "tex") = "latex"
-toWriterFormat (Format fmt)   = fmt
-#endif
 
 main :: IO ()
 main = toJSONFilter styleFromMeta
