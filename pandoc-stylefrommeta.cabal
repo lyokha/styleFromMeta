@@ -7,7 +7,7 @@ description:             Pandoc filter to customize links, images and paragraphs
 homepage:                http://github.com/lyokha/styleFromMeta
 license:                 BSD3
 license-file:            LICENSE
-extra-source-files:      Changelog.md README.md
+extra-doc-files:         Changelog.md README.md
 author:                  Alexey Radkov <alexey.radkov@gmail.com>
 maintainer:              Alexey Radkov <alexey.radkov@gmail.com>
 stability:               stable
@@ -18,7 +18,7 @@ cabal-version:           1.20
 
 source-repository head
   type:                  git
-  location:              git@github.com:lyokha/styleFromMeta.git
+  location:              https://github.com/lyokha/styleFromMeta.git
 
 flag Pandoc2
   description:           Use Pandoc 2.0 and newer
