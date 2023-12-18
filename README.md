@@ -107,6 +107,19 @@ HTML). Any contents found between opening and closing span tags are ignored:
 actual paragraph contents will be inserted inside them. Notice that wrapping
 inside code blocks is not allowed in `para_style` block.
 
+Build and install the filter with commands
+
+```ShellSession
+$ cabal build
+$ cabal install
+```
+
+The program is also available at *Hackage*, so you can install it with
+
+```ShellSession
+$ cabal install pandoc-stylefrommeta
+```
+
 <br><hr><a name="fn1"><sup>**1**</sup></a>&nbsp; All YAML and markdown code
 examples in this document have 4-space indentation as the document requires this
 for correct rendering. As such, when they are copied and pasted for playing
