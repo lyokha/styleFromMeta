@@ -1,3 +1,7 @@
+### 0.4.0.0
+
+- Dropped support for GHC older than *8.0* and *Pandoc* older than *2.8*.
+
 ### 0.3.0.0
 
 - Compatibility with Pandoc *3.0*.
