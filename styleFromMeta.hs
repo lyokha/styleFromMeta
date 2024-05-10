@@ -3,19 +3,18 @@
 
 import           Text.Pandoc.JSON
 import           Text.Pandoc.Walk (walk)
-import           Text.Pandoc.Options (def)
+import           Text.Pandoc.Options (WriterOptions (writerExtensions), def)
 import           Text.Pandoc.Shared (stringify)
 import           Text.Pandoc.Writers (Writer (..), getWriter)
 import           Text.Pandoc.Class (runPure)
 import           Text.Pandoc.Error (renderError)
-import qualified Data.ByteString.Lazy.Char8 as C8L
-import           Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Map as M
-
 #if MIN_VERSION_pandoc(3,0,0)
 import           Text.Pandoc.Format (FlavoredFormat (..))
 #endif
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.ByteString.Lazy.Char8 as C8L
+import qualified Data.Map as M
 
 pattern Style :: Text -> Inline
 pattern Style x <- Math InlineMath x
@@ -124,17 +123,18 @@ substParamsInRawBlock fm (alt, (src, title)) s =
 
 renderBlocks :: Format -> [Block] -> Text
 renderBlocks fm p =
-    let fmt = toWriterFormat fm
-        writer = getWriter fmt
+    let writer = getWriter $ toWriterFormat fm
         doc = Pandoc (Meta M.empty) p
     in case runPure writer of
-        Left e -> renderError e
-        Right (TextWriter w, _) -> case runPure $ w def doc of
-                                       Left e -> renderError e
-                                       Right r -> r
-        Right (ByteStringWriter w, _) -> case runPure $ w def doc of
-                                             Left e -> renderError e
-                                             Right r -> T.pack $ C8L.unpack r
+           Left e -> renderError e
+           Right (TextWriter w, ext) ->
+               case runPure $ w def {writerExtensions = ext} doc of
+                   Left e -> renderError e
+                   Right r -> r
+           Right (ByteStringWriter w, ext) ->
+               case runPure $ w def {writerExtensions = ext} doc of
+                   Left e -> renderError e
+                   Right r -> T.pack $ C8L.unpack r
 
 renderInlines :: Format -> [Inline] -> Text
 renderInlines fm p = renderBlocks fm [Plain p]
