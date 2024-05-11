@@ -92,9 +92,9 @@ substInlineStyle fm@(Format fmt) m
 substInlineStyle _ _ i = i
 
 toInlineParams :: Inline -> Maybe (InlineParams, InlineCons)
-toInlineParams (Image attr (style@(Style _) : Alt alt) tgt) =
+toInlineParams (Image attr (style@Style {} : Alt alt) tgt) =
     Just ((style, alt, tgt), Image attr)
-toInlineParams (Link attr (style@(Style _) : Alt alt) tgt) =
+toInlineParams (Link attr (style@Style {} : Alt alt) tgt) =
     Just ((style, alt, tgt), Link attr)
 toInlineParams _ = Nothing
 
