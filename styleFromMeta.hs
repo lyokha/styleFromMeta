@@ -134,6 +134,9 @@ renderBlocks fm p =
            Right (ByteStringWriter w, ext) ->
                case runPure $ w def {writerExtensions = ext} doc of
                    Left e -> renderError e
+                   -- NOTE: C8L.unpack truncates UTF8 characters, but it's ok
+                   -- as long as we don't expect blocks with non-latin
+                   -- characters inside
                    Right r -> T.pack $ C8L.unpack r
 
 renderInlines :: Format -> [Inline] -> Text
